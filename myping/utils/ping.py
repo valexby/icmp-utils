@@ -9,12 +9,11 @@ import time
 from collections import namedtuple
 import threading
 
-import constants as const
-from ip import get_ttl
+import myping.constants as const
+from myping.utils.ip import get_ttl
 
 
 LOG = logging.getLogger(__name__)
-# fh = logging.FileHandler(threading.)
 
 
 class TimeoutError(RuntimeError):
@@ -28,7 +27,7 @@ _IcmpHeader = namedtuple('_IcmpHeader', ['type', 'code', 'checksum', 'id', 'seq_
 
 
 class IcmpHeader(_IcmpHeader):
-    _format = 'bbHHh'
+    _format = 'BBHHH'
 
     def pack(self):
         return struct.pack(self._format, *self)

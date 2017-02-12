@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-from pinglib import ping
-import argparse
-import constants as const
-import sys
 import logging
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+import argparse
+import sys
+from concurrent.futures import ProcessPoolExecutor
+
+from myping.utils.ping import ping
+import myping.constants as const
 
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(levelname)s: %(message)s')
+    format='%(message)s')
 LOG = logging.getLogger(__name__)
 
 
