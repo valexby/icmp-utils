@@ -7,10 +7,9 @@ import struct
 import select
 import time
 from collections import namedtuple
-import threading
 
 import myping.constants as const
-from myping.utils.ip import get_ttl
+from myping.utils.ip import IPv4Header
 
 
 LOG = logging.getLogger(__name__)
@@ -52,22 +51,30 @@ def get_icmp_checksum(dummy_header):
     return ~s & 0xffff
 
 
-def send_one_ping(sock, dest_addr, identifier, seq_id, payload_size=56):
+def parse_ping_packet(packet):
+    if not isinstance(packet, (bytes, bytearray)):
+        raise TypeError('Packet parameter must be bytes or bytearray!')
+    ip_header = IPv4Header.unpack(packet[:20])
+    icmp_header = IcmpHeader.unpack(packet[20:28])
+    return ip_header, icmp_header, packet[28:]
+
+
+def send_one_ping(sock, dest_addr, id, seq_id, payload_size=56):
     """Send one ping to the given `dest_addr`."""
     if payload_size < const.MIN_PAYLOAD_SIZE:
         raise ValueError(f'Payload size must be greater than {const.MIN_PAYLOAD_SIZE}')
 
-    dummy_header = IcmpHeader(*const.ICMP_ECHO_REQUEST, 0, identifier, seq_id)
+    dummy_header = IcmpHeader(*const.ICMP_ECHO_REQUEST, 0, id, seq_id)
     payload = struct.pack("d", time.clock()).ljust(payload_size, b'\x00')
 
     checksum = get_icmp_checksum(dummy_header.pack() + payload)
-    header = IcmpHeader(*const.ICMP_ECHO_REQUEST, checksum, identifier, seq_id)
+    header = IcmpHeader(*const.ICMP_ECHO_REQUEST, checksum, id, seq_id)
     data = header.pack() + payload
 
     sock.sendto(data, (dest_addr, 0))
 
 
-def receive_one_ping(sock, identifier, timeout):
+def receive_one_ping(sock, id, timeout):
     """Receive ping from the socket."""
     time_left = timeout
     while time_left > 0:
@@ -81,23 +88,22 @@ def receive_one_ping(sock, identifier, timeout):
 
         packet, addr = sock.recvfrom(1024)
 
-        header = IcmpHeader.unpack(packet[20:28])
-        if (header.type, header.code) == const.ICMP_ECHO_REPLY and header.id == identifier:
-            time_sent = struct.unpack("d", packet[28:28 + struct.calcsize("d")])[0]
-            ip_payload_size = len(packet) - 20
-            ttl = get_ttl(packet)
+        ip_header, icmp_header, icmp_payload = parse_ping_packet(packet)
+        if (icmp_header.type, icmp_header.code) == const.ICMP_ECHO_REPLY and icmp_header.id == id:
+            time_sent = struct.unpack("d", icmp_payload[:struct.calcsize("d")])[0]
+            ip_payload_size = len(packet) - len(ip_header)
             time_spent = (ended_select - time_sent) * 100000
             return (ip_payload_size, socket.getfqdn(addr[0]), addr[0],
-                    header.seq_num, ttl, time_spent)
+                    icmp_header.seq_num, ip_header.ttl, time_spent)
     raise TimeoutError(timeout)
 
 
 def _ping(dest_ip, timeout, seq_id, payload_size):
     """Returns either the delay (in seconds) or none on timeout."""
-    identifier = os.getpid() & 0xFFFF
+    id = os.getpid() & 0xFFFF
     with socket.socket(AF_INET, SOCK_RAW, const.ICMP_PROTO) as sock:
-        send_one_ping(sock, dest_ip, identifier, seq_id, payload_size)
-        ping_result = receive_one_ping(sock, identifier, timeout)
+        send_one_ping(sock, dest_ip, id, seq_id, payload_size)
+        ping_result = receive_one_ping(sock, id, timeout)
     return ping_result
 
 
