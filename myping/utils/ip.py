@@ -2,7 +2,7 @@ import struct
 from collections import namedtuple
 import socket
 
-# ICMP header is type(8), code(8), checksum(16), id(16), sequence(16)
+
 _IPv4Header = namedtuple('_IPv4Header', [
     'version',
     'ihl',
@@ -39,19 +39,20 @@ class IPv4Header(_IPv4Header):
 
     @classmethod
     def unpack(cls, byte_obj):
-        (ver_ihl, tos, tot_len, id, flags_offset, *others) = struct.unpack(cls._format, byte_obj)
+        (ver_ihl, tos, tot_len, id, flags_offset, *others) = struct.unpack(
+            cls._format, byte_obj)
         version = ver_ihl >> 4
         ihl = ver_ihl & 0xF
         flags = flags_offset >> 13
         fragment_offset = flags_offset & 0x1FFF
-        return IPv4Header(version, ihl, tos, tot_len, id, flags, fragment_offset, *others)
+        return IPv4Header(
+            version, ihl, tos, tot_len, id, flags, fragment_offset, *others)
 
     def __len__(self):
         return struct.calcsize(self._format)
 
 
 def generate_ip_packet(dest_addr, ip_proto, payload, ttl=64, source_addr=None):
-    """Send one ping to the given `dest_addr`."""
     if source_addr is None:
         source_addr = socket.inet_aton('192.168.0.17')
     else:
@@ -59,7 +60,8 @@ def generate_ip_packet(dest_addr, ip_proto, payload, ttl=64, source_addr=None):
     dest_addr = socket.inet_aton(dest_addr)
     id = 54321
 
-    header = IPv4Header(4, 5, 0, 0, id, 2, 0, ttl, ip_proto, 0, source_addr, dest_addr)
+    header = IPv4Header(
+        4, 5, 0, 0, id, 2, 0, ttl, ip_proto, 0, source_addr, dest_addr)
     data = header.pack() + payload
 
     return data

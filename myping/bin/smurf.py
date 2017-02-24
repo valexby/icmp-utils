@@ -2,7 +2,6 @@
 import logging
 import argparse
 import sys
-from concurrent.futures import ProcessPoolExecutor
 
 from myping.utils.smurf import smurf
 import myping.constants as const

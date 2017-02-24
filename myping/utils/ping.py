@@ -21,7 +21,13 @@ class TimeoutError(RuntimeError):
 
 
 # ICMP header is type(8), code(8), checksum(16), id(16), sequence(16)
-_IcmpHeader = namedtuple('_IcmpHeader', ['type', 'code', 'checksum', 'id', 'seq_num'])
+_IcmpHeader = namedtuple('_IcmpHeader', [
+    'type',
+    'code',
+    'checksum',
+    'id',
+    'seq_num',
+])
 
 
 class IcmpHeader(_IcmpHeader):
@@ -36,6 +42,10 @@ class IcmpHeader(_IcmpHeader):
 
     def __len__(self):
         return struct.calcsize(self._format)
+
+    @property
+    def function(self):
+        return self.type, self.code
 
 
 def get_icmp_checksum(binary_data):
@@ -60,10 +70,11 @@ def parse_ping_packet(packet):
 
 def generate_ping_ip_payload(id, seq_id, payload_size=56):
     if payload_size < const.MIN_PAYLOAD_SIZE:
-        raise ValueError(f'Payload size must be greater than {const.MIN_PAYLOAD_SIZE}')
+        raise ValueError(
+            f'Payload size must be greater than {const.MIN_PAYLOAD_SIZE}')
 
     dummy_header = IcmpHeader(*const.ICMP_ECHO_REQUEST, 0, id, seq_id)
-    payload = struct.pack("d", time.clock()).ljust(payload_size, b'\x00')
+    payload = struct.pack('d', time.clock()).ljust(payload_size, b'\x00')
 
     checksum = get_icmp_checksum(dummy_header.pack() + payload)
     header = IcmpHeader(*const.ICMP_ECHO_REQUEST, checksum, id, seq_id)
@@ -92,8 +103,8 @@ def receive_one_ping(sock, id, timeout):
         packet, addr = sock.recvfrom(1024)
 
         ip_header, icmp_header, icmp_payload = parse_ping_packet(packet)
-        if (icmp_header.type, icmp_header.code) == const.ICMP_ECHO_REPLY and icmp_header.id == id:
-            time_sent = struct.unpack("d", icmp_payload[:struct.calcsize("d")])[0]
+        if icmp_header.function == const.ICMP_ECHO_REPLY and icmp_header.id == id:
+            time_sent = struct.unpack('d', icmp_payload[:struct.calcsize('d')])[0]
             ip_payload_size = len(packet) - len(ip_header)
             time_spent = (ended_select - time_sent) * 100000
             return (ip_payload_size, socket.getfqdn(addr[0]), addr[0],
@@ -111,21 +122,22 @@ def _ping(dest_ip, timeout, seq_id, payload_size):
 
 
 def ping(hostname, timeout=2, count=4, payload_size=56, log_to_file=False):
-    """Send `count` pings to `dest_addr` with the given `timeout` and display
-    the result.
-    """
     if log_to_file:
-        fh = logging.FileHandler('%d-ping-%s.log' % (time.time(), hostname), 'w')
+        fh = logging.FileHandler(
+            '%d-ping-%s.log' % (time.time(), hostname), 'w')
         LOG.addHandler(fh)
     try:
         dest_addr = socket.gethostbyname(socket.gethostbyname(hostname))
         frame_size = payload_size + 28
-        LOG.info(f'PING {hostname} ({dest_addr}) {payload_size}({frame_size}) bytes of data.')
+        LOG.info('PING %s (%s) %d(%d) bytes of data.',
+                 hostname, dest_addr, payload_size, frame_size)
 
         for seq_id in range(1, count+1):
             try:
                 ping_result = _ping(dest_addr, timeout, seq_id, payload_size)
-                LOG.info("%d bytes from %s (%s): icmp_seq=%d ttl=%d time=%0.1f ms" % ping_result)
+                LOG.info(
+                    '%d bytes from %s (%s): icmp_seq=%d ttl=%d time=%0.1f ms',
+                    *ping_result)
             except TimeoutError as e:
                 LOG.info(e)
     except socket.gaierror as e:
