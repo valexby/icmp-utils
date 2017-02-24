@@ -20,20 +20,20 @@ _IPv4Header = namedtuple('_IPv4Header', [
 
 
 class IPv4Header(_IPv4Header):
-    _format = 'BBHHHBBHII'
+    _format = '!BBHHHBBH4s4s'
 
     def pack(self):
         to_pack = (
-            self[0] << 4 + self[1],
+            self[0] << 4 | self[1],
             self[2],
             self[3],
             self[4],
-            self[5] << 13 + self[6],
+            self[5] << 13 | self[6],
             self[7],
             self[8],
             self[9],
             self[10],
-            self[11]
+            self[11],
         )
         return struct.pack(self._format, *to_pack)
 
@@ -50,7 +50,7 @@ class IPv4Header(_IPv4Header):
         return struct.calcsize(self._format)
 
 
-def send_one_frame(sock, dest_addr, ip_proto, payload, ttl=64, source_addr=None):
+def generate_ip_packet(dest_addr, ip_proto, payload, ttl=64, source_addr=None):
     """Send one ping to the given `dest_addr`."""
     if source_addr is None:
         source_addr = socket.inet_aton('192.168.0.17')
@@ -59,7 +59,7 @@ def send_one_frame(sock, dest_addr, ip_proto, payload, ttl=64, source_addr=None)
     dest_addr = socket.inet_aton(dest_addr)
     id = 54321
 
-    header = IPv4Header(4, 5, 0, 0, id, 0, 0, ttl, ip_proto, 0, source_addr, dest_addr)
+    header = IPv4Header(4, 5, 0, 0, id, 2, 0, ttl, ip_proto, 0, source_addr, dest_addr)
     data = header.pack() + payload
 
-    sock.sendto(data, (dest_addr, 0))
+    return data

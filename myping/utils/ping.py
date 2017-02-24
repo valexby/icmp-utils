@@ -1,8 +1,7 @@
-#!/usr/bin/env python
 import logging
 import os
 import socket
-from socket import AF_INET, SOCK_RAW
+from socket import AF_INET, SOCK_RAW, IPPROTO_IP, IPPROTO_ICMP
 import struct
 import select
 import time
@@ -39,14 +38,14 @@ class IcmpHeader(_IcmpHeader):
         return struct.calcsize(self._format)
 
 
-def get_icmp_checksum(dummy_header):
+def get_icmp_checksum(binary_data):
     def carry_around_add(a, b):
         c = a + b
         return (c & 0xffff) + (c >> 16)
 
     s = 0
-    for i in range(0, len(dummy_header), 2):
-        w = dummy_header[i] + (dummy_header[i+1] << 8)
+    for i in range(0, len(binary_data), 2):
+        w = binary_data[i] + (binary_data[i+1] << 8)
         s = carry_around_add(s, w)
     return ~s & 0xffff
 
@@ -59,8 +58,7 @@ def parse_ping_packet(packet):
     return ip_header, icmp_header, packet[28:]
 
 
-def send_one_ping(sock, dest_addr, id, seq_id, payload_size=56):
-    """Send one ping to the given `dest_addr`."""
+def generate_ping_ip_payload(id, seq_id, payload_size=56):
     if payload_size < const.MIN_PAYLOAD_SIZE:
         raise ValueError(f'Payload size must be greater than {const.MIN_PAYLOAD_SIZE}')
 
@@ -69,9 +67,14 @@ def send_one_ping(sock, dest_addr, id, seq_id, payload_size=56):
 
     checksum = get_icmp_checksum(dummy_header.pack() + payload)
     header = IcmpHeader(*const.ICMP_ECHO_REQUEST, checksum, id, seq_id)
-    data = header.pack() + payload
 
-    sock.sendto(data, (dest_addr, 0))
+    return header.pack() + payload
+
+
+def send_one_ping(sock, dest_addr, id, seq_id, payload_size=56):
+    """Send one ping to the given `dest_addr`."""
+    packet_data = generate_ping_ip_payload(id, seq_id, payload_size)
+    sock.sendto(packet_data, (dest_addr, 0))
 
 
 def receive_one_ping(sock, id, timeout):
@@ -101,7 +104,7 @@ def receive_one_ping(sock, id, timeout):
 def _ping(dest_ip, timeout, seq_id, payload_size):
     """Returns either the delay (in seconds) or none on timeout."""
     id = os.getpid() & 0xFFFF
-    with socket.socket(AF_INET, SOCK_RAW, const.ICMP_PROTO) as sock:
+    with socket.socket(AF_INET, SOCK_RAW, IPPROTO_ICMP) as sock:
         send_one_ping(sock, dest_ip, id, seq_id, payload_size)
         ping_result = receive_one_ping(sock, id, timeout)
     return ping_result
