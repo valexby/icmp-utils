@@ -3,8 +3,8 @@ import logging
 import argparse
 import sys
 
-from myping.utils.smurf import smurf
-import myping.constants as const
+from icmputils.utils.smurf import smurf
+import icmputils.constants as const
 
 
 logging.basicConfig(

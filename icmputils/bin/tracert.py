@@ -3,8 +3,8 @@ import logging
 import argparse
 import sys
 
-from myping.utils.tracert import traceroute
-import myping.constants as const
+from icmputils.utils.tracert import traceroute
+import icmputils.constants as const
 
 
 logging.basicConfig(

@@ -4,8 +4,8 @@ import argparse
 import sys
 from concurrent.futures import ProcessPoolExecutor
 
-from myping.utils.ping import ping
-import myping.constants as const
+from icmputils.utils.ping import ping
+import icmputils.constants as const
 
 
 logging.basicConfig(

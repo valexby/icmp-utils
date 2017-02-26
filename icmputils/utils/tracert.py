@@ -5,8 +5,8 @@ import os
 import time
 import select
 import struct
-from myping.utils.ping import send_one_ping, parse_ping_packet
-import myping.constants as const
+from icmputils.utils.ping import send_one_ping, parse_ping_packet
+import icmputils.constants as const
 
 
 LOG = logging.getLogger(__name__)

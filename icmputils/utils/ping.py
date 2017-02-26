@@ -7,8 +7,8 @@ import select
 import time
 from collections import namedtuple
 
-import myping.constants as const
-from myping.utils.ip import IPv4Header
+import icmputils.constants as const
+from icmputils.utils.ip import IPv4Header
 
 
 LOG = logging.getLogger(__name__)
