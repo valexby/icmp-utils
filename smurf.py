@@ -3,8 +3,8 @@ import logging
 import argparse
 import sys
 
-from icmputils.utils.smurf import smurf
-import icmputils.constants as const
+from utils.smurf import smurf
+import constants as const
 
 
 logging.basicConfig(
@@ -25,10 +25,10 @@ def _parse_args():
     args = parser.parse_args()
 
     if args.count <= 0:
-        print(f'COUNT must be positive!')
+        print('COUNT must be positive!')
         sys.exit(0)
     if args.payload_size < const.MIN_PAYLOAD_SIZE:
-        print(f'PAYLOAD_SIZE must be greater than {const.MIN_PAYLOAD_SIZE}!')
+        print('PAYLOAD_SIZE must be greater than {const.MIN_PAYLOAD_SIZE}!')
         sys.exit(0)
 
     return args

@@ -5,8 +5,8 @@ import os
 import time
 import select
 import struct
-from icmputils.utils.ping import send_one_ping, parse_ping_packet
-import icmputils.constants as const
+from utils.ping import send_one_ping, parse_ping_packet
+import constants as const
 
 
 LOG = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ def send_one_tracert(*args, **kwargs):
     return send_one_ping(*args, **kwargs)
 
 
-def receive_one_tracert(sock, id, timeout):
+def receive_one_tracert(sock, pid, timeout):
     time_left = timeout
     while time_left > 0:
         started_select = time.clock()
@@ -40,7 +40,7 @@ def receive_one_tracert(sock, id, timeout):
             except struct.error:
                 time_spent = None
             return (socket.getfqdn(addr[0]), addr[0], time_spent, False)
-        if icmp_header.function == const.ICMP_ECHO_REPLY and id == icmp_header.id:
+        if icmp_header.function == const.ICMP_ECHO_REPLY and pid == icmp_header.pid:
             time_sent = struct.unpack(
                 "d", icmp_payload[:struct.calcsize("d")])[0]
             time_spent = (ended_select - time_sent) * 100000
@@ -49,15 +49,15 @@ def receive_one_tracert(sock, id, timeout):
 
 
 def _traceroute(sock, dest_ip, timeout, payload_size):
-    id = os.getpid() & 0xFFFF
+    pid = os.getpid() & 0xFFFF
     source = None
     latency = []
     trace_end = False
     for seq_id in range(1, 4):
         try:
-            send_one_tracert(sock, dest_ip, id, seq_id, payload_size)
+            send_one_tracert(sock, dest_ip, pid, seq_id, payload_size)
             *source, time_spent, trace_end = receive_one_tracert(
-                sock, id, timeout)
+                sock, pid, timeout)
             if time_spent is not None:
                 latency.append('%0.1f ms' % time_spent)
             else:

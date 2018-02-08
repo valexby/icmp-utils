@@ -3,8 +3,7 @@ import logging
 import argparse
 import sys
 
-from icmputils.utils.tracert import traceroute
-import icmputils.constants as const
+from utils.tracert import traceroute
 
 
 logging.basicConfig(

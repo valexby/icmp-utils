@@ -2,8 +2,8 @@ import logging
 import socket
 from socket import AF_INET, SOCK_RAW, IPPROTO_IP, IPPROTO_ICMP
 
-from icmputils.utils.ip import generate_ip_packet
-from icmputils.utils.ping import generate_ping_ip_payload
+from utils.ip import generate_ip_packet
+from utils.ping import generate_ping_ip_payload
 
 
 LOG = logging.getLogger(__name__)
